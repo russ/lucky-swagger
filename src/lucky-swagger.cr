@@ -1,4 +1,5 @@
 require "lucky"
+require "lucky_task"
 require "./lucky-swagger/**"
 
 module LuckySwagger

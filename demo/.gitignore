@@ -1,0 +1,5 @@
+lib/
+.crystal/
+*.dwarf
+demo
+shard.lock

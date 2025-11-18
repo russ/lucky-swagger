@@ -1,7 +1,7 @@
 module LuckySwagger
   class OpenApiGenerator
     def self.generate_open_api
-      routes = Lucky.router.routes.select { |route| route[1].to_s.includes?("api") }
+      routes = Lucky.router.list_routes.select { |route| route[0].to_s.includes?("api") }
       paths = if routes.any?
         result = generate_route_description routes.first
         routes.each { |route| result.merge! generate_route_description(route) }
@@ -20,12 +20,12 @@ module LuckySwagger
       }
     end
 
-    private def self.generate_route_description(route : Tuple(Symbol, String, Lucky::Action.class))
+    private def self.generate_route_description(route : Tuple(String, String, Lucky::Action.class))
       action_path = route[2].name.split("::")
 
       {
-        format_route_url(route[1]) => {
-          route[0] => {
+        format_route_url(route[0]) => {
+          route[1].downcase => {
             tags: [
               action_path.size > 1 ? action_path[-2] : "default"
             ],
@@ -48,8 +48,8 @@ module LuckySwagger
       }
     end
 
-    private def self.generate_params_description(route : Tuple(Symbol, String, Lucky::Action.class))
-      path_params = route[1].scan(/:\w+/).map do |param|
+    private def self.generate_params_description(route : Tuple(String, String, Lucky::Action.class))
+      path_params = route[0].scan(/:\w+/).map do |param|
         {
           name: param[0].delete(':'),
           in: "path",

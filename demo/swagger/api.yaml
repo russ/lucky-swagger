@@ -1,0 +1,238 @@
+openapi: 3.0.0
+info:
+  title: Lucky Swagger Demo API
+  description: |
+    Demonstration API showing lucky-swagger features:
+    - Multiple resource endpoints (Users, Posts, Comments)
+    - Various parameter types (path, query, with defaults)
+    - Nested resources
+    - Different HTTP methods (GET, POST, PUT, DELETE)
+  version: 1.0.0
+paths:
+  /api/health:
+    get:
+      tags:
+      - Health
+      summary: Health Check
+      description: Check API health status
+      parameters: []
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+  /api/users:
+    get:
+      tags:
+      - Users
+      summary: List Users
+      description: Get paginated list of users with optional filtering
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 25
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: active
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: sort_by
+        in: query
+        required: false
+        schema:
+          type: string
+          default: created_at
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      tags:
+      - Users
+      summary: Create User
+      description: Create a new user
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/users/{user_id}:
+    get:
+      tags:
+      - Users
+      summary: Show User
+      description: Get details for a specific user
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+    put:
+      tags:
+      - Users
+      summary: Update User
+      description: Update an existing user
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      tags:
+      - Users
+      summary: Delete User
+      description: Delete a user
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/posts:
+    get:
+      tags:
+      - Posts
+      summary: List Posts
+      description: Get list of posts with optional filtering
+      parameters:
+      - name: author_id
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          default: published
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 10
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/posts/{post_id}:
+    get:
+      tags:
+      - Posts
+      summary: Show Post
+      description: Get details for a specific post
+      parameters:
+      - name: post_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/posts/{post_id}/comments:
+    get:
+      tags:
+      - Comments
+      summary: List Comments
+      description: Get comments for a specific post
+      parameters:
+      - name: post_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/posts/{post_id}/comments/{comment_id}:
+    get:
+      tags:
+      - Comments
+      summary: Show Comment
+      description: Get details for a specific comment
+      parameters:
+      - name: post_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: comment_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
