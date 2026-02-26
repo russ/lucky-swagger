@@ -502,14 +502,20 @@ module LuckySwagger
                         },
                       },
                     {% else %}
-                      {{ status_code }} => {
-                        description: {{ description || "Success" }},
-                        content: {
-                          "application/json" => {
-                            schema: {type: "object"},
+                      {% if status_code == "204" %}
+                        {{ status_code }} => {
+                          description: {{ description || "No Content" }},
+                        },
+                      {% else %}
+                        {{ status_code }} => {
+                          description: {{ description || "Success" }},
+                          content: {
+                            "application/json" => {
+                              schema: {type: "object"},
+                            },
                           },
                         },
-                      },
+                      {% end %}
                     {% end %}
                   {% end %}
                   "422" => {
@@ -573,14 +579,20 @@ module LuckySwagger
                       },
                     },
                   {% else %}
-                    {{ status_code }} => {
-                      description: {{ description || "Success" }},
-                      content: {
-                        "application/json" => {
-                          schema: {type: "object"},
+                    {% if status_code == "204" %}
+                      {{ status_code }} => {
+                        description: {{ description || "No Content" }},
+                      },
+                    {% else %}
+                      {{ status_code }} => {
+                        description: {{ description || "Success" }},
+                        content: {
+                          "application/json" => {
+                            schema: {type: "object"},
+                          },
                         },
                       },
-                    },
+                    {% end %}
                   {% end %}
                 {% end %}
               }
