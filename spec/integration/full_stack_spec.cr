@@ -67,18 +67,18 @@ describe "LuckySwagger Full Integration" do
         # Generate multiple API specs
         v1_spec = LuckySwagger::OpenApiGenerator.generate_open_api.merge({
           info: {
-            title: "API V1",
+            title:       "API V1",
             description: "API version 1",
-            version: "1.0.0"
-          }
+            version:     "1.0.0",
+          },
         })
 
         v2_spec = LuckySwagger::OpenApiGenerator.generate_open_api.merge({
           info: {
-            title: "API V2",
+            title:       "API V2",
             description: "API version 2",
-            version: "2.0.0"
-          }
+            version:     "2.0.0",
+          },
         })
 
         File.open("./spec/tmp/multi-version/v1.yaml", "w") do |file|
@@ -158,6 +158,70 @@ describe "LuckySwagger Full Integration" do
     end
   end
 
+  describe "components/schemas in YAML output" do
+    it "includes components/schemas section in generated YAML" do
+      FileUtils.rm_rf("./spec/tmp/schemas")
+      Dir.mkdir_p("./spec/tmp/schemas")
+
+      begin
+        output_file = "./spec/tmp/schemas/api.yaml"
+        File.open(output_file, "w") do |file|
+          YAML.dump(LuckySwagger::OpenApiGenerator.generate_open_api, file)
+        end
+
+        content = File.read(output_file)
+        parsed = YAML.parse(content)
+
+        # Should have components/schemas
+        parsed["components"].should_not be_nil
+        parsed["components"]["schemas"].should_not be_nil
+
+        # Built-in schemas
+        parsed["components"]["schemas"]["Pagination"].should_not be_nil
+        parsed["components"]["schemas"]["Error"].should_not be_nil
+      ensure
+        FileUtils.rm_rf("./spec/tmp/schemas")
+      end
+    end
+
+    it "includes $ref references in generated YAML" do
+      FileUtils.rm_rf("./spec/tmp/refs")
+      Dir.mkdir_p("./spec/tmp/refs")
+
+      begin
+        output_file = "./spec/tmp/refs/api.yaml"
+        File.open(output_file, "w") do |file|
+          YAML.dump(LuckySwagger::OpenApiGenerator.generate_open_api, file)
+        end
+
+        content = File.read(output_file)
+        # Annotated actions should produce $ref entries
+        content.should contain("#/components/schemas/")
+      ensure
+        FileUtils.rm_rf("./spec/tmp/refs")
+      end
+    end
+
+    it "includes enum arrays in generated YAML" do
+      FileUtils.rm_rf("./spec/tmp/enums")
+      Dir.mkdir_p("./spec/tmp/enums")
+
+      begin
+        output_file = "./spec/tmp/enums/api.yaml"
+        File.open(output_file, "w") do |file|
+          YAML.dump(LuckySwagger::OpenApiGenerator.generate_open_api, file)
+        end
+
+        content = File.read(output_file)
+        # Feed::Index has swagger_enum with filter values
+        content.should contain("all")
+        content.should contain("following")
+      ensure
+        FileUtils.rm_rf("./spec/tmp/enums")
+      end
+    end
+  end
+
   describe "error handling" do
     it "handles empty swagger directory gracefully" do
       FileUtils.rm_rf("./spec/tmp/empty")
@@ -218,6 +282,7 @@ describe "LuckySwagger Full Integration" do
       result.has_key?(:openapi).should be_true
       result.has_key?(:info).should be_true
       result.has_key?(:paths).should be_true
+      result.has_key?(:components).should be_true
 
       # Info object required fields
       result[:info][:title].should eq("API")
@@ -233,7 +298,9 @@ describe "LuckySwagger Full Integration" do
         if first_path.is_a?(Hash)
           first_method = first_path.values.first
           first_method.to_s.should contain("responses")
-          first_method.to_s.should contain("200")
+          # POST endpoints typically return 201 or 200
+          first_method_str = first_method.to_s
+          (first_method_str.includes?("200") || first_method_str.includes?("201")).should be_true
         end
       end
     end
