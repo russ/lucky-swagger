@@ -18,23 +18,59 @@ module LuckySwagger
                  result
                end
 
-      result = {
-        openapi:    "3.0.0",
-        info:       {
-          title:       LuckySwagger.settings.title,
-          description: LuckySwagger.settings.description,
-          version:     LuckySwagger.settings.version,
-        },
-        paths:      paths,
-        components: build_components,
-      }
+      # Build result with optional servers and security
+      has_servers = LuckySwagger.settings.servers.any?
+      has_security = LuckySwagger.settings.default_security.any?
 
-      # Add servers array if configured
-      if LuckySwagger.settings.servers.any?
-        result = result.merge({servers: LuckySwagger.settings.servers})
+      if has_servers && has_security
+        {
+          openapi:    "3.0.0",
+          info:       {
+            title:       LuckySwagger.settings.title,
+            description: LuckySwagger.settings.description,
+            version:     LuckySwagger.settings.version,
+          },
+          servers:    LuckySwagger.settings.servers,
+          paths:      paths,
+          components: build_components,
+          security:   LuckySwagger.settings.default_security,
+        }
+      elsif has_servers
+        {
+          openapi:    "3.0.0",
+          info:       {
+            title:       LuckySwagger.settings.title,
+            description: LuckySwagger.settings.description,
+            version:     LuckySwagger.settings.version,
+          },
+          servers:    LuckySwagger.settings.servers,
+          paths:      paths,
+          components: build_components,
+        }
+      elsif has_security
+        {
+          openapi:    "3.0.0",
+          info:       {
+            title:       LuckySwagger.settings.title,
+            description: LuckySwagger.settings.description,
+            version:     LuckySwagger.settings.version,
+          },
+          paths:      paths,
+          components: build_components,
+          security:   LuckySwagger.settings.default_security,
+        }
+      else
+        {
+          openapi:    "3.0.0",
+          info:       {
+            title:       LuckySwagger.settings.title,
+            description: LuckySwagger.settings.description,
+            version:     LuckySwagger.settings.version,
+          },
+          paths:      paths,
+          components: build_components,
+        }
       end
-
-      result
     end
 
     # Filter routes based on configuration settings
@@ -62,14 +98,17 @@ module LuckySwagger
 
     # Build components section with schemas and security schemes
     private def self.build_components
-      components = {schemas: collect_schemas}
-
-      # Add security schemes if configured
+      # Build the full structure upfront to avoid merge issues
       if LuckySwagger.settings.security_schemes.any?
-        components = components.merge({securitySchemes: LuckySwagger.settings.security_schemes})
+        {
+          schemas:         collect_schemas,
+          securitySchemes: LuckySwagger.settings.security_schemes,
+        }
+      else
+        {
+          schemas: collect_schemas,
+        }
       end
-
-      components
     end
 
     # Build entire schemas hash as a single compile-time literal.
@@ -298,18 +337,27 @@ module LuckySwagger
         {
           name:     name,
           in:       "query",
-          required: !type.includes?("::Nil"),
+          required: false,  # Query params are always optional (can be omitted from request)
           schema:   {
             type: infer_param_type(type),
           },
         }
       end
 
-      # Attach enum values to matching query params
+      # Attach enum values to matching query params (nested inside schema)
       enriched_query_params = query_params.map do |qp|
         enum_values = get_enum_values(action_class, qp[:name])
         if enum_values
-          qp.merge({enum: enum_values})
+          # Merge enum into the schema, not at the parameter level
+          {
+            name:     qp[:name],
+            in:       qp[:in],
+            required: qp[:required],
+            schema:   {
+              type: qp[:schema][:type],
+              enum: enum_values,
+            },
+          }
         else
           qp
         end
@@ -589,11 +637,6 @@ module LuckySwagger
         {
           "204" => {
             description: "Deleted successfully",
-            content:     {
-              "application/json" => {
-                schema: {type: "object"},
-              },
-            },
           },
         }
       else
