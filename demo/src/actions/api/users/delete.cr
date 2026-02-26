@@ -1,4 +1,4 @@
-@[LuckySwagger::Endpoint(summary: "Delete user", description: "Permanently deletes a user and all associated data", tags: ["Users"])]
+@[LuckySwagger::Endpoint(summary: "Delete user", description: "Permanently deletes a user and all associated data. Use soft delete endpoints instead.", tags: ["Users"], deprecated: true)]
 @[LuckySwagger::Response(204, description: "User deleted successfully")]
 @[LuckySwagger::Response(404, schema: LuckySwagger::ErrorSchema, description: "User not found")]
 class Api::Users::Delete < ApiAction

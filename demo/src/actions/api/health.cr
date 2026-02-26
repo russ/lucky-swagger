@@ -1,4 +1,4 @@
-@[LuckySwagger::Endpoint(summary: "Health check", description: "Returns the current API health status and server timestamp", tags: ["System"])]
+@[LuckySwagger::Endpoint(summary: "Health check", description: "Returns the current API health status and server timestamp", tags: ["System"], security: "none")]
 @[LuckySwagger::Response(200, description: "API is healthy")]
 class Api::Health < ApiAction
   get "/api/health" do
