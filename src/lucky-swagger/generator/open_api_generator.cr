@@ -1,7 +1,7 @@
 module LuckySwagger
   class OpenApiGenerator
     def self.generate_open_api
-      routes = Lucky.router.list_routes.select { |route| route[0].to_s.includes?("api") && route[1].downcase != "head" }
+      routes = filter_routes(Lucky.router.list_routes)
       paths = if routes.any?
                  result = generate_route_description(routes.first)
                  routes.each_with_index do |route, i|
@@ -18,18 +18,58 @@ module LuckySwagger
                  result
                end
 
-      {
+      result = {
         openapi:    "3.0.0",
         info:       {
-          title:       "API",
-          description: "API for Lucky project",
-          version:     "1.0.0",
+          title:       LuckySwagger.settings.title,
+          description: LuckySwagger.settings.description,
+          version:     LuckySwagger.settings.version,
         },
         paths:      paths,
-        components: {
-          schemas: collect_schemas,
-        },
+        components: build_components,
       }
+
+      # Add servers array if configured
+      if LuckySwagger.settings.servers.any?
+        result = result.merge({servers: LuckySwagger.settings.servers})
+      end
+
+      result
+    end
+
+    # Filter routes based on configuration settings
+    private def self.filter_routes(all_routes)
+      all_routes.select do |route|
+        method = route[1].downcase
+        path = route[0].to_s
+
+        # Always exclude HEAD requests
+        next false if method == "head"
+
+        # Apply include_routes filter
+        case LuckySwagger.settings.include_routes
+        when :all
+          true
+        when :api_only
+          path.includes?("api")
+        when Regex
+          path.match(LuckySwagger.settings.include_routes.as(Regex)) != nil
+        else
+          true
+        end
+      end
+    end
+
+    # Build components section with schemas and security schemes
+    private def self.build_components
+      components = {schemas: collect_schemas}
+
+      # Add security schemes if configured
+      if LuckySwagger.settings.security_schemes.any?
+        components = components.merge({securitySchemes: LuckySwagger.settings.security_schemes})
+      end
+
+      components
     end
 
     # Build entire schemas hash as a single compile-time literal.
@@ -96,6 +136,17 @@ module LuckySwagger
         parameters:  generate_params_description(route),
       }
 
+      # Add deprecated flag if set
+      if is_deprecated?(action_class)
+        route_spec = route_spec.merge({deprecated: true})
+      end
+
+      # Add security requirements
+      security = extract_security(action_class)
+      if security
+        route_spec = route_spec.merge({security: security})
+      end
+
       if ["post", "put", "patch"].includes?(method)
         request_body = extract_request_body(action_class)
         if request_body
@@ -115,7 +166,49 @@ module LuckySwagger
       }
     end
 
-    # --- Tag, summary, description extraction via Endpoint annotation ---
+    # --- Tag, summary, description, security, deprecation extraction via Endpoint annotation ---
+
+    private def self.is_deprecated?(action_class) : Bool
+      {% begin %}
+        {% for action in Lucky::Action.all_subclasses %}
+          if action_class == {{ action }}
+            {% endpoint = action.annotation(LuckySwagger::Endpoint) %}
+            {% if endpoint && endpoint[:deprecated] %}
+              return {{ endpoint[:deprecated] }}
+            {% end %}
+          end
+        {% end %}
+      {% end %}
+
+      false
+    end
+
+    private def self.extract_security(action_class)
+      {% begin %}
+        {% for action in Lucky::Action.all_subclasses %}
+          if action_class == {{ action }}
+            {% endpoint = action.annotation(LuckySwagger::Endpoint) %}
+            {% if endpoint && endpoint[:security] %}
+              {% security_value = endpoint[:security] %}
+              {% if security_value == "none" %}
+                # Explicitly no security - return empty array to override defaults
+                return [] of Hash(String, Array(String))
+              {% else %}
+                # Specific security scheme name
+                return [{ {{ security_value.stringify }} => [] of String }]
+              {% end %}
+            {% end %}
+          end
+        {% end %}
+      {% end %}
+
+      # If no explicit security annotation, use default security from config
+      if LuckySwagger.settings.default_security.any?
+        return LuckySwagger.settings.default_security
+      end
+
+      nil
+    end
 
     private def self.extract_tags(action_class, action_path)
       {% begin %}
@@ -129,7 +222,29 @@ module LuckySwagger
         {% end %}
       {% end %}
 
-      [action_path.size > 1 ? action_path[-2] : "default"]
+      # Auto-generate tags from namespace hierarchy
+      # Example: Api::Frontend::Users::Index -> ["Frontend > Users"] or ["Users"]
+      # Example: Api::Users::Index -> ["Users"]
+      generate_tags_from_namespace(action_path)
+    end
+
+    private def self.generate_tags_from_namespace(action_path : Array(String))
+      # Remove the action name (e.g., "Index", "Show", "Create")
+      path_without_action = action_path[0..-2]
+
+      # Skip generic prefixes like "Api", "Actions", etc.
+      filtered_path = path_without_action.reject { |part| ["Api", "Actions", "V1", "V2"].includes?(part) }
+
+      if filtered_path.size >= 2
+        # Multiple levels: join with " > " (e.g., "Frontend > Users")
+        [filtered_path.join(" > ")]
+      elsif filtered_path.size == 1
+        # Single level: just use it
+        [filtered_path[0]]
+      else
+        # Fallback if everything was filtered out
+        ["default"]
+      end
     end
 
     private def self.extract_summary(action_class, action_path)

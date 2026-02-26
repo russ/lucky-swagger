@@ -24,9 +24,12 @@ module LuckySwagger
   annotation Response
   end
 
-  # Defines endpoint metadata (summary, description, tags).
+  # Defines endpoint metadata (summary, description, tags, security, deprecated).
   # Usage:
   #   @[LuckySwagger::Endpoint(summary: "List users", description: "...", tags: ["Users"])]
+  #   @[LuckySwagger::Endpoint(security: "bearerAuth")]
+  #   @[LuckySwagger::Endpoint(security: "none")]  # Public endpoint, no auth required
+  #   @[LuckySwagger::Endpoint(deprecated: true)]
   annotation Endpoint
   end
 end
