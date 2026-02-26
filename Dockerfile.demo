@@ -1,0 +1,25 @@
+FROM docker.io/crystallang/crystal:latest
+
+WORKDIR /app
+
+# Copy shard source
+COPY shard.yml shard.lock* ./
+COPY src/ src/
+
+# Copy demo app
+COPY demo/ demo/
+
+# Install shards for the demo (which references parent via path: ..)
+WORKDIR /app/demo
+RUN shards install --ignore-crystal-version
+
+# Build the YAML generator and the demo server
+RUN crystal build src/generate_yaml.cr -o /app/demo/bin/generate_yaml --no-debug 2>&1
+RUN crystal build src/demo.cr -o /app/demo/bin/demo --no-debug 2>&1
+
+# Generate fresh YAML from annotated actions
+RUN /app/demo/bin/generate_yaml
+
+EXPOSE 5000
+
+CMD ["/app/demo/bin/demo"]

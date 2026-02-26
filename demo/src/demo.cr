@@ -1,6 +1,10 @@
 require "lucky"
 require "lucky-swagger"
 
+# Require schemas and serializers first
+require "./schemas/**"
+require "./serializers/**"
+
 # Require all application files
 require "./actions/**"
 require "./app_server"
