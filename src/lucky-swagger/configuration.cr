@@ -11,7 +11,7 @@ module LuckySwagger
   alias ServerConfig = NamedTuple(url: String, description: String)
 
   # Security scheme definition for OpenAPI components.securitySchemes
-  alias SecurityScheme = Hash(String, String | Hash(String, String))
+  alias SecurityScheme = Hash(String, String)
 
   # Security requirement for OpenAPI security array (e.g., [{"bearerAuth" => [] of String}])
   alias SecurityRequirement = Hash(String, Array(String))
