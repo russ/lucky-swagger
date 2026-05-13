@@ -6,7 +6,7 @@ class AppServer < Lucky::BaseAppServer
       # and YAML files from the ./swagger directory
       LuckySwagger::Handlers::WebHandler.new(
         swagger_url: "/api-docs",
-        folder: "./swagger"
+        live: true
       ),
       Lucky::HttpMethodOverrideHandler.new,
       Lucky::LogHandler.new,
