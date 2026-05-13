@@ -7,4 +7,6 @@ require "./lucky-swagger/**"
 
 module LuckySwagger
   VERSION = "0.3.0"
+
+  Handler = Handlers::WebHandler
 end
