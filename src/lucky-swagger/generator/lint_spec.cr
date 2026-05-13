@@ -12,7 +12,7 @@ module LuckySwagger
     def call
       spec_file = filename || "./swagger/api.yaml"
 
-      if generate
+      if generate?
         yaml_content = OpenApiGenerator.generate_yaml
         Dir.mkdir_p(Path[spec_file].dirname)
         File.write(spec_file, yaml_content)
