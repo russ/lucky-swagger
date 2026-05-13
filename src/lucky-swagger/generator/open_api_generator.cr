@@ -720,7 +720,7 @@ module LuckySwagger
                     schema: {
                       type:       "object",
                       {% if required_fields && required_fields.size > 0 %}
-                      required:   {{ required_fields.map(&.stringify) }},
+                      required:   {{ required_fields.map(&.id.stringify) }},
                       {% end %}
                       properties: {
                         {% for field_name, field_type in request_body_ann[:multipart] %}
