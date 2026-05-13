@@ -2,25 +2,39 @@ module LuckySwagger
   class GenerateOpenApi < LuckyTask::Task
     summary "Generate OpenAPI documentation for API routes"
 
-    arg :filename, "File for OpenAPI generation",
+    arg :filename, "Output file path",
       shortcut: "-f",
       optional: true
 
+    arg :format, "Output format: yaml (default) or json",
+      shortcut: "-F",
+      optional: true
+
+    switch :validate, "Validate the generated spec for structural errors",
+      shortcut: "-v"
+
     def call
-      file = filename || "./swagger/api.yaml"
+      fmt = format || "yaml"
+      default_ext = fmt == "json" ? "json" : "yaml"
+      file = filename || "./swagger/api.#{default_ext}"
 
-      generate_open_api(file)
+      yaml_content = OpenApiGenerator.generate_yaml
 
-      output.puts <<-TEXT
-        OpenAPI was generated in a file #{file}
-      TEXT
-    end
+      if validate
+        errors = SpecValidator.validate(yaml_content)
+        if errors.any?
+          output.puts "Spec validation errors:"
+          errors.each { |e| output.puts "  - #{e}" }
+          return
+        end
+        output.puts "Spec validation passed."
+      end
 
-    private def generate_open_api(filename : String)
-      path = Path[filename].dirname
-      Dir.mkdir_p(path) unless Dir.exists?(path)
+      content = fmt == "json" ? YAML.parse(yaml_content).to_json : yaml_content
+      Dir.mkdir_p(Path[file].dirname)
+      File.write(file, content)
 
-      File.open(filename, "w") { |file| YAML.dump(LuckySwagger::OpenApiGenerator.generate_open_api, file) }
+      output.puts "OpenAPI spec written to #{file}"
     end
   end
 end

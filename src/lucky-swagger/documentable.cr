@@ -27,9 +27,34 @@ module LuckySwagger
     #     property text : String
     #     property comments_count : Int32
     #   end
+    # Declares typed fields for OpenAPI schema generation.
+    # Creates a nested `SwaggerSchema` struct with JSON::Serializable
+    # that the generator introspects at compile time.
+    #
+    # Use `field` inside the block to attach OpenAPI constraints inline:
+    #
+    #   swagger_fields do
+    #     field id : Int64
+    #     field title : String, max_length: 200
+    #     field status : String, enum: ["draft", "published"], default: "draft"
+    #     field score : Float64, minimum: 0.0, maximum: 100.0
+    #     field email : String?, format: "email"
+    #   end
+    #
+    # Plain `property` declarations still work and produce unconstrained fields.
     macro swagger_fields(&block)
       struct SwaggerSchema
         include JSON::Serializable
+
+        # Shorthand for a property with inline OpenAPI constraints.
+        # Supported kwargs: example, format, max_length, min_length,
+        # minimum, maximum, enum, default.
+        macro field(decl, **opts)
+          \{% unless opts.empty? %}
+            @[LuckySwagger::FieldMeta(\{{ opts.double_splat }})]
+          \{% end %}
+          property \{{ decl }}
+        end
 
         {{ block.body }}
       end
