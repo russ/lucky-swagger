@@ -109,9 +109,12 @@ describe "LuckySwagger Full Integration" do
 
   describe "API route introspection" do
     it "correctly introspects registered Lucky routes" do
-      result = LuckySwagger::OpenApiGenerator.generate_open_api
+      result = nil
+      LuckySwagger.temp_config(include_routes: :api_only) do
+        result = LuckySwagger::OpenApiGenerator.generate_open_api
+      end
 
-      paths = result[:paths]
+      paths = result.not_nil![:paths]
 
       # Should only include API routes (those with 'api' in path)
       if paths

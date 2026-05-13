@@ -158,6 +158,54 @@ describe LuckySwagger::Handlers::WebHandler do
     end
   end
 
+  describe "T-5: live mode (generate-on-request)" do
+    it "initializes without requiring a folder on disk" do
+      handler = LuckySwagger::Handlers::WebHandler.new(swagger_url: "/docs", live: true)
+      handler.swagger_files.should be_empty
+      handler.swagger_urls.size.should eq(1)
+      handler.swagger_urls.first[:url].should eq("/docs/live.yaml")
+    end
+
+    it "serves the SwaggerUI HTML at the swagger URL" do
+      handler = LuckySwagger::Handlers::WebHandler.new(live: true)
+      request = HTTP::Request.new("GET", "/swagger")
+      response = HTTP::Server::Response.new(IO::Memory.new)
+      context = HTTP::Server::Context.new(request, response)
+
+      handler.call(context)
+
+      context.response.status_code.should eq(200)
+      context.response.headers["Content-Type"].should eq("text/html")
+    end
+
+    it "serves freshly generated YAML at the live endpoint" do
+      handler = LuckySwagger::Handlers::WebHandler.new(live: true)
+      request = HTTP::Request.new("GET", "/swagger/live.yaml")
+      io = IO::Memory.new
+      response = HTTP::Server::Response.new(io)
+      context = HTTP::Server::Context.new(request, response)
+
+      handler.call(context)
+
+      context.response.status_code.should eq(200)
+      context.response.headers["Content-Type"].should eq("application/yaml")
+    end
+
+    it "passes through non-swagger requests in live mode" do
+      handler = LuckySwagger::Handlers::WebHandler.new(live: true)
+      next_called = false
+      handler.next = HTTP::Handler::HandlerProc.new { |_ctx| next_called = true }
+
+      request = HTTP::Request.new("GET", "/other")
+      response = HTTP::Server::Response.new(IO::Memory.new)
+      context = HTTP::Server::Context.new(request, response)
+
+      handler.call(context)
+
+      next_called.should be_true
+    end
+  end
+
   describe "swagger_urls generation" do
     it "generates URL mappings from YAML files" do
       FileUtils.rm_rf("./spec/tmp/swagger")
