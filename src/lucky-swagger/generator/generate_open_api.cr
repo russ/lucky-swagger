@@ -20,7 +20,7 @@ module LuckySwagger
 
       yaml_content = OpenApiGenerator.generate_yaml
 
-      if validate
+      if validate?
         errors = SpecValidator.validate(yaml_content)
         if errors.any?
           output.puts "Spec validation errors:"
