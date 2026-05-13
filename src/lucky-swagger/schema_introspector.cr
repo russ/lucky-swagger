@@ -76,8 +76,10 @@ module LuckySwagger
                     {% scalar_fmt = inner.annotation(LuckySwagger::ScalarFormat) %}
                     {% if scalar_fmt %}
                       {{ ivar.name.stringify }} => {type: {{ scalar_fmt[:type] }}, format: {{ scalar_fmt[:format] }}, nullable: true{% if ex %}, example: {{ ex }}{% end %}},
+                    {% elsif inner.has_constant?("SwaggerSchema") %}
+                      {{ ivar.name.stringify }} => SchemaIntrospector.openapi_schema({{ inner }}::SwaggerSchema),
                     {% else %}
-                      {{ ivar.name.stringify }} => {type: "object", nullable: true{% if ex %}, example: {{ ex }}{% end %}},
+                      {{ ivar.name.stringify }} => SchemaIntrospector.openapi_schema({{ inner }}),
                     {% end %}
                   {% end %}
                 {% else %}
@@ -125,8 +127,10 @@ module LuckySwagger
                 {% scalar_fmt = ivar_type.annotation(LuckySwagger::ScalarFormat) %}
                 {% if scalar_fmt %}
                   {{ ivar.name.stringify }} => {type: {{ scalar_fmt[:type] }}, format: {{ scalar_fmt[:format] }}{% if ex %}, example: {{ ex }}{% end %}},
+                {% elsif ivar_type.has_constant?("SwaggerSchema") %}
+                  {{ ivar.name.stringify }} => SchemaIntrospector.openapi_schema({{ ivar_type }}::SwaggerSchema),
                 {% else %}
-                  {{ ivar.name.stringify }} => {type: "object"{% if ex %}, example: {{ ex }}{% end %}},
+                  {{ ivar.name.stringify }} => SchemaIntrospector.openapi_schema({{ ivar_type }}),
                 {% end %}
               {% end %}
             {% end %}

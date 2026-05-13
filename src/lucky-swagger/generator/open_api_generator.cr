@@ -326,7 +326,7 @@ module LuckySwagger
         request_body = extract_request_body(action_class)
         if request_body
           route_spec = route_spec.merge({requestBody: request_body})
-        else
+        elsif method == "post"
           route_spec = route_spec.merge({requestBody: generate_default_request_body(route)})
         end
       end
